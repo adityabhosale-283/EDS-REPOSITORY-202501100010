@@ -1,0 +1,386 @@
+# Name - [Your Name]
+# Roll No - [Your Roll No]
+# Class - FY BSc / BE (CSE)
+# Subject - Python Programming
+# Topic - IPL Data Analysis using Numpy and Pandas
+
+import pandas as pd
+import numpy as np
+
+# creating dataset
+# took reference from kaggle ipl dataset for column names
+
+np.random.seed(10)
+
+teams = ['Mumbai Indians', 'Chennai Super Kings', 'Royal Challengers Bangalore',
+         'Kolkata Knight Riders', 'Delhi Capitals', 'Sunrisers Hyderabad',
+         'Rajasthan Royals', 'Punjab Kings']
+
+players = {
+    'Mumbai Indians': ['Rohit Sharma', 'Jasprit Bumrah', 'Hardik Pandya', 'Suryakumar Yadav', 'Kieron Pollard'],
+    'Chennai Super Kings': ['MS Dhoni', 'Ravindra Jadeja', 'Faf du Plessis', 'Deepak Chahar', 'Ambati Rayudu'],
+    'Royal Challengers Bangalore': ['Virat Kohli', 'AB de Villiers', 'Glenn Maxwell', 'Mohammed Siraj', 'Yuzvendra Chahal'],
+    'Kolkata Knight Riders': ['Andre Russell', 'Sunil Narine', 'Eoin Morgan', 'Pat Cummins', 'Shubman Gill'],
+    'Delhi Capitals': ['Rishabh Pant', 'Shikhar Dhawan', 'Kagiso Rabada', 'Anrich Nortje', 'Prithvi Shaw'],
+    'Sunrisers Hyderabad': ['David Warner', 'Kane Williamson', 'Bhuvneshwar Kumar', 'Rashid Khan', 'Jonny Bairstow'],
+    'Rajasthan Royals': ['Jos Buttler', 'Sanju Samson', 'Ben Stokes', 'Trent Boult', 'Yashasvi Jaiswal'],
+    'Punjab Kings': ['KL Rahul', 'Chris Gayle', 'Mohammed Shami', 'Mayank Agarwal', 'Nicholas Pooran']
+}
+
+venues = ['Wankhede Stadium', 'MA Chidambaram Stadium', 'M Chinnaswamy Stadium',
+          'Eden Gardens', 'Arun Jaitley Stadium', 'Rajiv Gandhi Stadium',
+          'Sawai Mansingh Stadium', 'PCA Stadium']
+
+seasons = list(range(2008, 2023))
+
+rows = []
+mid = 1
+for season in seasons:
+    num_matches = np.random.randint(56, 64)
+    for _ in range(num_matches):
+        t1 = np.random.choice(teams)
+        t2 = np.random.choice(teams)
+        while t1 == t2:
+            t2 = np.random.choice(teams)
+
+        s1 = np.random.randint(130, 220)
+        s2 = np.random.randint(110, 215)
+        winner = t1 if s1 > s2 else t2
+        toss_w = np.random.choice([t1, t2])
+        toss_d = np.random.choice(['bat', 'field'])
+        pom = np.random.choice(players[winner])
+
+        rows.append({
+            'match_id': mid, 'season': season,
+            'team1': t1, 'team2': t2,
+            'venue': np.random.choice(venues),
+            'toss_winner': toss_w, 'toss_decision': toss_d,
+            'team1_score': s1, 'team2_score': s2,
+            'winner': winner, 'win_margin': abs(s1 - s2),
+            'player_of_match': pom
+        })
+        mid += 1
+
+matches = pd.DataFrame(rows)
+
+d_rows = []
+for _, m in matches.iterrows():
+    for inn in [1, 2]:
+        bat_team = m['team1'] if inn == 1 else m['team2']
+        bowl_team = m['team2'] if inn == 1 else m['team1']
+        num_balls = np.random.randint(65, 121)
+
+        for b in range(num_balls):
+            runs = int(np.random.choice([0,1,2,3,4,6], p=[0.30,0.30,0.15,0.03,0.15,0.07]))
+            extra = int(np.random.choice([0, 1], p=[0.93, 0.07]))
+            wicket = int(np.random.choice([0, 1], p=[0.94, 0.06]))
+            dkind = np.random.choice(['caught','bowled','lbw','run out','stumped']) if wicket else ''
+
+            d_rows.append({
+                'match_id': m['match_id'],
+                'season': m['season'],
+                'innings': inn,
+                'over': b // 6,
+                'ball': b % 6 + 1,
+                'batting_team': bat_team,
+                'bowling_team': bowl_team,
+                'batsman': np.random.choice(players[bat_team]),
+                'bowler': np.random.choice(players[bowl_team]),
+                'batsman_runs': runs,
+                'extra_runs': extra,
+                'total_runs': runs + extra,
+                'is_wicket': wicket,
+                'dismissal_kind': dkind
+            })
+
+deliveries = pd.DataFrame(d_rows)
+
+print("matches shape:", matches.shape)
+print("deliveries shape:", deliveries.shape)
+print()
+print(matches.head(3))
+print()
+
+
+# Q1. How many matches were played in each IPL season?
+# method used - groupby, count
+
+print("Q1) Matches played per season")
+print()
+
+q1 = matches.groupby('season')['match_id'].count()
+q1.name = 'total_matches'
+print(q1)
+print()
+
+
+# Q2. Which team has won the most matches in ipl history?
+# method used - value_counts, idxmax
+
+print("Q2) Team with most wins overall")
+print()
+
+q2 = matches['winner'].value_counts()
+print(q2)
+print()
+print("Answer:", q2.idxmax(), "with", q2.max(), "wins")
+print()
+
+
+# Q3. How many times did the toss winner also win the match?
+# method used - boolean condition
+
+print("Q3) Did toss winner win the match?")
+print()
+
+toss_wins = matches[matches['toss_winner'] == matches['winner']]
+percent = round(len(toss_wins) / len(matches) * 100, 2)
+print("Times toss winner won the match:", len(toss_wins))
+print("Total matches:", len(matches))
+print("Win percentage:", percent, "%")
+print()
+
+
+# Q4. What is the total runs scored in each season?
+# method used - groupby, np.sum
+
+print("Q4) Total runs scored per season")
+print()
+
+q4 = deliveries.groupby('season')['total_runs'].apply(lambda x: np.sum(x.values))
+q4.name = 'total_runs'
+print(q4)
+print()
+
+
+# Q5. Who are the top 5 run scorers in IPL?
+# method used - groupby, sum, sort_values
+
+print("Q5) Top 5 run scorers")
+print()
+
+q5 = deliveries.groupby('batsman')['batsman_runs'].sum()
+q5 = q5.sort_values(ascending=False).head(5)
+q5.name = 'total_runs'
+print(q5)
+print()
+
+
+# Q6. Who has taken the most wickets? (run outs not counted)
+# method used - filter, groupby, sum
+
+print("Q6) Top 5 wicket takers")
+print()
+
+# not counting run outs because bowler doesnt get credit for that
+only_bowler_wkts = deliveries[(deliveries['is_wicket'] == 1) & (deliveries['dismissal_kind'] != 'run out')]
+q6 = only_bowler_wkts.groupby('bowler')['is_wicket'].sum().sort_values(ascending=False).head(5)
+q6.name = 'wickets'
+print(q6)
+print()
+
+
+# Q7. What toss decision do teams prefer - bat or field?
+# method used - value_counts
+
+print("Q7) Toss decision - bat or field?")
+print()
+
+q7 = matches['toss_decision'].value_counts()
+print(q7)
+print()
+print("Most preferred:", q7.idxmax())
+print()
+
+
+# Q8. What is the average first innings score of each team?
+# method used - groupby, mean
+
+print("Q8) Average first innings score per team")
+print()
+
+q8 = matches.groupby('team1')['team1_score'].mean().round(2).sort_values(ascending=False)
+q8.name = 'avg_score'
+print(q8)
+print()
+
+
+# Q9. Which venue has hosted the most IPL matches?
+# method used - value_counts
+
+print("Q9) Number of matches per venue")
+print()
+
+q9 = matches['venue'].value_counts()
+print(q9)
+print()
+print("Most matches hosted at:", q9.idxmax())
+print()
+
+
+# Q10. Who has won the most Player of the Match awards?
+# method used - value_counts, head
+
+print("Q10) Top 5 Player of the Match award winners")
+print()
+
+q10 = matches['player_of_match'].value_counts().head(5)
+q10.name = 'awards'
+print(q10)
+print()
+
+
+# Q11. What is the strike rate of top batsmen? (min 200 balls faced)
+# method used - groupby, division, np.multiply
+
+print("Q11) Strike rate of batsmen (min 200 balls faced)")
+print()
+
+balls_faced = deliveries.groupby('batsman')['ball'].count()
+runs_made = deliveries.groupby('batsman')['batsman_runs'].sum()
+
+# formula = (runs / balls) * 100
+sr = np.multiply(runs_made / balls_faced, 100).round(2)
+sr = sr[balls_faced >= 200].sort_values(ascending=False).head(10)
+sr.name = 'strike_rate'
+print(sr)
+print()
+
+
+# Q12. How many fours and sixes were hit in total across all seasons?
+# method used - np.sum with condition
+
+print("Q12) Total fours and sixes in IPL history")
+print()
+
+fours = np.sum(deliveries['batsman_runs'].values == 4)
+sixes = np.sum(deliveries['batsman_runs'].values == 6)
+print("Total Fours:", fours)
+print("Total Sixes:", sixes)
+print("Total Boundaries:", fours + sixes)
+print()
+
+
+# Q13. Which bowlers have the best economy rate? (min 300 balls)
+# method used - groupby, divide, filter
+
+print("Q13) Best economy rate - bowlers (min 300 balls bowled)")
+print()
+
+balls_bowled = deliveries.groupby('bowler')['ball'].count()
+runs_given = deliveries.groupby('bowler')['total_runs'].sum()
+
+economy = (runs_given / (balls_bowled / 6)).round(2)
+economy = economy[balls_bowled >= 300].sort_values().head(8)
+economy.name = 'economy_rate'
+print(economy)
+print()
+
+
+# Q14. Which season had the most and least runs scored?
+# method used - np.max, np.min, idxmax, idxmin
+
+print("Q14) Season with highest and lowest total runs")
+print()
+
+season_runs = deliveries.groupby('season')['total_runs'].sum()
+
+print("Highest:", season_runs.idxmax(), "->", np.max(season_runs.values), "runs")
+print("Lowest :", season_runs.idxmin(), "->", np.min(season_runs.values), "runs")
+print()
+
+
+# Q15. What is the win percentage of each team?
+# method used - value_counts, division, round
+
+print("Q15) Win percentage of all teams")
+print()
+
+total_played = pd.concat([matches['team1'], matches['team2']]).value_counts()
+total_wins = matches['winner'].value_counts()
+
+win_pct = ((total_wins / total_played) * 100).round(2).sort_values(ascending=False)
+win_pct.name = 'win_%'
+print(win_pct)
+print()
+
+
+# Q16. What is the distribution of dismissal types?
+# method used - filter, value_counts, normalize
+
+print("Q16) How batsmen got out - dismissal type breakdown")
+print()
+
+wickets_only = deliveries[deliveries['is_wicket'] == 1]
+q16_count = wickets_only['dismissal_kind'].value_counts()
+q16_pct = wickets_only['dismissal_kind'].value_counts(normalize=True).mul(100).round(2)
+
+q16 = pd.DataFrame({'count': q16_count, 'percentage': q16_pct})
+print(q16)
+print()
+
+
+# Q17. Compare average runs in powerplay vs death overs per match
+# method used - filter by over number, groupby, np.mean
+
+print("Q17) Powerplay vs Death over runs comparison")
+print()
+
+pp = deliveries[deliveries['over'] < 6]
+death = deliveries[deliveries['over'] >= 16]
+
+pp_runs = pp.groupby('match_id')['total_runs'].sum()
+death_runs = death.groupby('match_id')['total_runs'].sum()
+
+print("Avg Powerplay runs per match :", round(np.mean(pp_runs.values), 2))
+print("Avg Death over runs per match:", round(np.mean(death_runs.values), 2))
+print()
+
+
+# Q18. Find basic statistics of all match scores using numpy
+# method used - np.mean, np.std, np.median, np.max, np.min
+
+print("Q18) Basic statistics of IPL match scores")
+print()
+
+all_scores = np.concatenate([matches['team1_score'].values, matches['team2_score'].values])
+
+print("Mean   :", round(np.mean(all_scores), 2))
+print("Median :", np.median(all_scores))
+print("Std Dev:", round(np.std(all_scores), 2))
+print("Max    :", np.max(all_scores))
+print("Min    :", np.min(all_scores))
+print()
+
+
+# Q19. Who was the best Player of the Match in each season?
+# method used - groupby, apply, value_counts
+
+print("Q19) Best Player of the Match each season")
+print()
+
+q19 = matches.groupby('season')['player_of_match'].apply(
+    lambda x: x.value_counts().idxmax()
+)
+q19.name = 'best_player'
+print(q19)
+print()
+
+
+# Q20. Is there any correlation between winning toss and win margin?
+# method used - np.corrcoef, pandas corr
+
+print("Q20) Correlation between toss result and win margin")
+print()
+
+matches['toss_win_flag'] = (matches['toss_winner'] == matches['winner']).astype(int)
+
+corr = np.corrcoef(matches['toss_win_flag'].values, matches['win_margin'].values)[0][1]
+print("Correlation value (numpy):", round(corr, 4))
+
+pd_corr = matches[['toss_win_flag', 'win_margin']].corr()
+print()
+print("Correlation matrix (pandas):")
+print(pd_corr)
+print()
+print("Conclusion: value is very close to 0 so toss win has almost no effect on win margin")
